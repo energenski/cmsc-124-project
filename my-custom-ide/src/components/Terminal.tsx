@@ -7,8 +7,8 @@ interface TerminalProps {
 }
 
 export default function Terminal({ height }: TerminalProps) {
-  const [history, setHistory] = useState<string[]>([]); // all displayed lines
-  const [commands, setCommands] = useState<string[]>([]); // only inputs for history navigation
+  const [history, setHistory] = useState<string[]>([]);
+  const [commands, setCommands] = useState<string[]>([]);
   const [currentInput, setCurrentInput] = useState("");
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
@@ -39,12 +39,8 @@ export default function Terminal({ height }: TerminalProps) {
       result = `${cmd} : Command not found`;
     }
 
-    // add to displayed history
     setHistory((prev) => [...prev, PROMPT + cmd, result]);
-
-    // add to commands history
     setCommands((prev) => [...prev, cmd]);
-
     setCurrentInput("");
   };
 
@@ -87,6 +83,20 @@ export default function Terminal({ height }: TerminalProps) {
       }}
       onClick={() => inputRef.current?.focus()}
     >
+      {/* Terminal Header */}
+      <div
+        style={{
+          padding: "4px 8px",
+          backgroundColor: "#2c2c2c",
+          borderBottom: "1px solid #444",
+          fontWeight: "bold",
+          fontSize: "12px",
+        }}
+      >
+        Terminal
+      </div>
+
+      {/* Terminal Output + Input */}
       <div
         ref={outputRef}
         style={{
