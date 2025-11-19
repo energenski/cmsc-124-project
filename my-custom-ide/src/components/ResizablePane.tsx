@@ -1,5 +1,6 @@
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
+import "../index.css"; // import CSS for handle
 
 interface ResizablePaneProps {
   height: number;
@@ -25,22 +26,7 @@ export default function ResizablePane({
       axis="y"
       resizeHandles={["n"]}
       onResize={(_, { size }) => setHeight(size.height)}
-      handle={
-        <span
-          className="resizable-handle"
-          style={{
-            cursor: "ns-resize",
-            display: "block",
-            height: "6px",
-            width: "100%",
-            backgroundColor: "rgba(255,255,255,0.2)",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            zIndex: 10,
-          }}
-        />
-      }
+      handle={<span className="resizable-handle" />}
     >
       <div style={{ height: "100%", overflow: "auto", position: "relative" }}>
         {children}

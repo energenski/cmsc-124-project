@@ -2,6 +2,7 @@ import { useState } from "react";
 import Editor from "@monaco-editor/react";
 import ResizablePane from "./components/ResizablePane";
 import "./index.css";
+import Terminal from "./components/Terminal";
 
 function App() {
   const [code, setCode] = useState("# Write your code here\n");
@@ -45,10 +46,7 @@ function App() {
           minHeight={100}
           maxHeight={400}
         >
-          <div className="output-pane">
-            <div className="title">Terminal:</div>
-            <pre>{output}</pre>
-          </div>
+          <Terminal height={terminalHeight} />
         </ResizablePane>
       </div>
     </div>
