@@ -1,5 +1,13 @@
-# cmsc-124-project
+# LOLCODE INTERPRETER
 
 # How to Run
-{content: }
-``` [2, 9]
+## Backend
+``` cd my-custom-ide
+cd backend
+python server.py
+```
+## Frontend
+``` cd my-custom-ide
+cd frontend
+npm run dev
+```
