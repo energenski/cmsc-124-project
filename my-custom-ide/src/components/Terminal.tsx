@@ -105,6 +105,20 @@ export default function Terminal({ height, externalOutput }: TerminalProps) {
       </div>
 
       {/* Terminal Output + Input */}
+      {/* Terminal Header */}
+      <div
+        style={{
+          padding: "4px 8px",
+          backgroundColor: "#2c2c2c",
+          borderBottom: "1px solid #444",
+          fontWeight: "bold",
+          fontSize: "12px",
+        }}
+      >
+        Terminal
+      </div>
+
+      {/* Terminal Output + Input */}
       <div
         ref={outputRef}
         style={{
