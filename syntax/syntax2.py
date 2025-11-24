@@ -7,269 +7,317 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from lexer1 import get_tokens, Token
 except ImportError:
-    print("Error: Could not import 'lexer1.py'. Make sure it's in the parent directory.", file=sys.stderr)
-    sys.exit(1)
+    try:
+        from lexer1 import get_tokens, Token
+    except ImportError:
+        print("Error: Could not import 'lexer1.py'. Make sure it's in the parent directory.", file=sys.stderr)
+        sys.exit(1)
 
+import re
+
+VAR_NAME_REGEX = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
-        self.current_index = 0
+        self.position = 0
         self.errors = []
+        self.variables_declared = set()
+        self.in_wazzup = False
 
-    def current_token(self):
-        return self.tokens[self.current_index] if self.current_index < len(self.tokens) else None
+    def current(self):
+        return self.tokens[self.position] if self.position < len(self.tokens) else Token("EOF", "", -1, -1)
 
-    def advance(self):
-        self.current_index += 1
+    def peek(self):
+        if self.position + 1 < len(self.tokens):
+            return self.tokens[self.position + 1]
+        return Token("EOF", "", -1, -1)
 
-    def error(self, expected_types):
-        token = self.current_token()
-        if token:
-            expected_str = ' or '.join(expected_types)
-            error_msg = (
-                f"Syntax Error on line {token.line}, column {token.column}: "
-                f"Expected {expected_str}, but found **{token.value}** ({token.label})."
-            )
+    def eat(self, token_type):
+        if self.current().type == token_type:
+            self.position += 1
         else:
-            error_msg = "Syntax Error: Unexpected End of File"
-        self.errors.append(error_msg)
-        self.advance()
+            self.record_error(f"Expected {token_type}, got {self.current().type}", self.current())
+            self.position += 1
 
-    def consume(self, expected_type):
-        token = self.current_token()
-        if token and token.type == expected_type:
-            self.advance()
-            return token
+    def record_error(self, message, token):
+        self.errors.append(f"Line {token.line}: {message} (token: '{token.value}')")
+
+    def parse(self):
+        self.skip_comments()
+        self.program()
+        if self.current().type != "EOF":
+            self.record_error("Unexpected tokens after program end", self.current())
+
+    def skip_comments(self):
+        while self.current().type in ("BTW", "OBTW"):
+            self.position += 1
+
+    def program(self):
+        if self.current().type != "HAI":
+            self.record_error("Program must start with HAI", self.current())
+            if self.current().type != "HAI":
+                 self.position += 1
         else:
-            self.error([expected_type])
-            return None
+            self.eat("HAI")
+            if self.current().type == "VERSION":
+                self.eat("VERSION") 
 
-    def parse_program(self):
-        print("Starting Parsing: <Program>")
-        self.consume("HAI")
-        
-        if self.current_token() and self.current_token().type == "VERSION":
-            self.advance()
-            if self.current_token().type in ("FLOAT_LITERAL", "INTEGER_LITERAL"):
-                self.advance()
+        if self.current().type == "WAZZUP":
+            self.in_wazzup = True
+            self.eat("WAZZUP")
+            while self.current().type != "BUHBYE" and self.current().type != "EOF":
+                self.statement()
+            if self.current().type != "BUHBYE":
+                self.record_error("Missing BUHBYE after WAZZUP", self.current())
             else:
-                self.error(["FLOAT_LITERAL", "INTEGER_LITERAL"])
-        
-        self.parse_code_block()
-        self.consume("KTHXBYE")
-        
-        if not self.errors:
-            print("\nParsing Successful! No syntax errors found.")
+                self.eat("BUHBYE")
+            self.in_wazzup = False
+
+        while self.current().type != "KTHXBYE" and self.current().type != "EOF":
+            self.statement()
+
+        if self.current().type != "KTHXBYE":
+            self.record_error("Program must end with KTHXBYE", self.current())
         else:
-            print("\nParsing Failed with the following syntax errors:")
-            for err in self.errors:
-                print(err)
+            self.eat("KTHXBYE")
 
-    def parse_code_block(self):
-        print("  | Parsing: <CodeBlock>")
-        # Stop at block delimiters
-        while self.current_token() and self.current_token().type not in (
-            "KTHXBYE", "EOF", "BUHBYE", "OIC", "OMG", "OMGWTF", "TLDR", "YA_RLY", "MEBBE", "NO_WAI", "IM_OUTTA_YR"
-        ):
-            start_index = self.current_index
-            self.parse_statement()
-            
-            if self.current_index == start_index:
-                # Force advance if stuck
-                print(f"  | Stuck on token: {self.current_token().value}. Skipping.")
-                self.advance()
-
-    def parse_statement(self):
-        token = self.current_token()
-        if not token:
-            return
-
-        print(f"  | Parsing Statement starting with {token.type}")
-
-        if token.type == "I_HAS_A":
-            self.parse_variable_decl()
-        elif token.type == "VISIBLE":
-            self.parse_output_statement()
-        elif token.type == "GIMMEH":
-            self.parse_input_statement()
-        elif token.type in ("SUM_OF", "DIFF_OF", "PRODUKT_OF", "QUOSHUNT_OF", "MOD_OF", 
-                            "BIGGR_OF", "SMALLR_OF", "BOTH_OF", "EITHER_OF", "WON_OF", 
-                            "NOT", "ALL_OF", "ANY_OF", "BOTH_SAEM", "DIFFRINT", "SMOOSH", "MAEK"):
-            self.parse_expression()
-        elif token.type == "IDENTIFIER":
-            # Could be assignment or just an expression
-            # Lookahead to see if it's assignment (R) or type cast (IS NOW A)
-            if self.current_index + 1 < len(self.tokens):
-                next_token = self.tokens[self.current_index + 1]
-                if next_token.type == "R":
-                    self.parse_assignment()
-                elif next_token.type == "IS_NOW_A":
-                    self.parse_type_cast()
-                else:
-                    self.parse_expression()
+    def statement(self):
+        tok = self.current().type
+        if tok == "I_HAS_A":
+            self.var_declaration()
+        elif tok == "IDENTIFIER":
+            if self.peek().type == "R":
+                self.assignment()
+            elif self.peek().type == "IS_NOW_A":
+                self.type_cast()
             else:
                 self.parse_expression()
-        elif token.type == "ORLY":
-            self.parse_if_statement()
-        elif token.type == "WTF":
-            self.parse_switch_statement()
-        elif token.type == "IM_IN_YR":
-            self.parse_loop_statement()
+        elif tok == "VISIBLE":
+            self.output_statement()
+        elif tok == "GIMMEH":
+            self.input_statement()
+        elif tok == "ORLY":
+            self.if_statement()
+        elif tok == "IM_IN_YR":
+            self.loop_statement()
+        elif tok == "HOW_IZ_I":
+            self.function_def()
+        elif tok == "WTF":
+            self.switch_statement()
+        elif tok == "GTFO":
+            self.eat("GTFO")
+        elif tok == "FOUND_YR":
+            self.return_statement()
+        elif tok == "I_IZ":
+            self.function_call()
+        elif tok in ("SUM_OF", "DIFF_OF", "PRODUKT_OF", "QUOSHUNT_OF", "MOD_OF", 
+                     "BIGGR_OF", "SMALLR_OF", "BOTH_OF", "EITHER_OF", "WON_OF", 
+                     "NOT", "ALL_OF", "ANY_OF", "BOTH_SAEM", "DIFFRINT", "SMOOSH", "MAEK",
+                     "INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL"):
+            self.parse_expression()
         else:
-            # If it's a literal, it's an expression statement
-            if token.type in ("INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL"):
+            self.record_error(f"Unexpected token {tok} in statement", self.current())
+            self.position += 1
+
+    def var_declaration(self):
+        self.eat("I_HAS_A")
+        if self.current().type != "IDENTIFIER":
+            self.record_error("Invalid variable name in declaration", self.current())
+        else:
+            if not VAR_NAME_REGEX.match(self.current().value):
+                 self.record_error(f"Invalid variable name format '{self.current().value}'", self.current())
+            self.variables_declared.add(self.current().value)
+            self.eat("IDENTIFIER")
+        
+        if self.current().type == "ITZ":
+            self.eat("ITZ")
+            self.parse_expression()
+
+    def assignment(self):
+        self.eat("IDENTIFIER")
+        self.eat("R")
+        self.parse_expression()
+
+    def type_cast(self):
+        self.eat("IDENTIFIER")
+        self.eat("IS_NOW_A")
+        self.eat("TYPE") 
+
+    def input_statement(self):
+        self.eat("GIMMEH")
+        if self.current().type != "IDENTIFIER":
+            self.record_error("GIMMEH must be followed by variable", self.current())
+        else:
+            self.eat("IDENTIFIER")
+
+    def output_statement(self):
+        self.eat("VISIBLE")
+        self.parse_expression()
+        while self.current().type in ("AN", "PLUS") or self.is_expression_start(self.current().type):
+            if self.current().type in ("AN", "PLUS"):
+                self.eat(self.current().type)
+            if self.is_expression_start(self.current().type):
                 self.parse_expression()
-            else:
-                self.error(["Statement"])
 
-    def parse_variable_decl(self):
-        print("    - Parsing: <VariableDecl>")
-        self.consume("I_HAS_A")
-        self.consume("IDENTIFIER")
-        if self.current_token().type == "ITZ":
-            self.advance()
-            self.parse_expression()
-
-    def parse_assignment(self):
-        print("    - Parsing: <Assignment>")
-        self.consume("IDENTIFIER")
-        self.consume("R")
-        self.parse_expression()
-
-    def parse_type_cast(self):
-        print("    - Parsing: <TypeCast>")
-        self.consume("IDENTIFIER")
-        self.consume("IS_NOW_A")
-        self.consume("TYPE")
-
-    def parse_output_statement(self):
-        print("    - Parsing: <OutputStatement>")
-        self.consume("VISIBLE")
-        self.parse_expression()
-        while self.current_token() and self.current_token().type == "AN": # Visible can take multiple args? usually implicit concatenation or +
-             # The grammar usually implies VISIBLE <expr>+
-             # But lexer has AN. Let's support AN or just multiple expressions if they follow?
-             # Standard LOLCODE VISIBLE takes varargs.
-             # For now, let's assume AN separator or just expressions.
-             # Actually, usually VISIBLE "A" "B" is valid.
-             # But let's stick to simple recursion or loop.
-             # If next token is expression start, parse it.
-             pass
-             # For this implementation, let's just parse one expression or handle + (SMOOSH)
-             # If we want to support VISIBLE A B C, we need to check if next token starts expression.
-             # Simplified:
-        # Check for more expressions (simplified)
-        while self.current_token() and self.is_expression_start(self.current_token().type):
-             self.parse_expression()
-
-    def parse_input_statement(self):
-        print("    - Parsing: <InputStatement>")
-        self.consume("GIMMEH")
-        self.consume("IDENTIFIER")
-
-    def parse_if_statement(self):
-        print("    - Parsing: <IfStatement>")
-        self.consume("ORLY")
-        self.consume("YA_RLY")
-        self.parse_code_block()
+    def if_statement(self):
+        self.eat("ORLY")
+        if self.current().type != "YA_RLY":
+            self.record_error("Missing YA_RLY after ORLY", self.current())
+        else:
+            self.eat("YA_RLY")
         
-        while self.current_token() and self.current_token().type == "MEBBE":
-            self.advance()
+        while self.current().type not in ("NO_WAI", "OIC", "MEBBE", "EOF"):
+            self.statement()
+            
+        while self.current().type == "MEBBE":
+            self.eat("MEBBE")
             self.parse_expression()
-            self.parse_code_block()
-            
-        if self.current_token() and self.current_token().type == "NO_WAI":
-            self.advance()
-            self.parse_code_block()
-            
-        self.consume("OIC")
+            while self.current().type not in ("NO_WAI", "OIC", "MEBBE", "EOF"):
+                self.statement()
 
-    def parse_switch_statement(self):
-        print("    - Parsing: <SwitchStatement>")
-        self.consume("WTF")
-        self.consume("OMG")
-        self.parse_literal() # Case literal
-        self.parse_code_block()
+        if self.current().type == "NO_WAI":
+            self.eat("NO_WAI")
+            while self.current().type not in ("OIC", "EOF"):
+                self.statement()
         
-        while self.current_token() and self.current_token().type == "OMG":
-            self.consume("OMG")
+        if self.current().type != "OIC":
+            self.record_error("Missing OIC at end of IF block", self.current())
+        else:
+            self.eat("OIC")
+
+    def switch_statement(self):
+        self.eat("WTF")
+        if self.current().type != "OMG":
+             self.record_error("Expected OMG after WTF", self.current())
+        
+        while self.current().type == "OMG":
+            self.eat("OMG")
             self.parse_literal()
-            self.parse_code_block()
-            
-        if self.current_token() and self.current_token().type == "OMGWTF":
-            self.consume("OMGWTF")
-            self.parse_code_block()
-            
-        self.consume("OIC")
-
-    def parse_loop_statement(self):
-        print("    - Parsing: <LoopStatement>")
-        self.consume("IM_IN_YR")
-        self.consume("IDENTIFIER") # Loop label
+            while self.current().type not in ("OMG", "OMGWTF", "OIC", "EOF"):
+                self.statement()
         
-        # Operation (UPPIN/NERFIN)
-        if self.current_token().type in ("UPPIN", "NERFIN"):
-            self.advance()
-            self.consume("YR")
-            self.consume("IDENTIFIER")
-            
-        # Condition (TIL/WILE)
-        if self.current_token().type in ("TIL", "WILE"):
-            self.advance()
+        if self.current().type == "OMGWTF":
+            self.eat("OMGWTF")
+            while self.current().type not in ("OIC", "EOF"):
+                self.statement()
+        
+        self.eat("OIC")
+
+    def loop_statement(self):
+        self.eat("IM_IN_YR")
+        if self.current().type == "IDENTIFIER":
+            self.eat("IDENTIFIER")
+        
+        if self.current().type in ("UPPIN", "NERFIN"):
+            self.eat(self.current().type)
+            if self.current().type == "YR":
+                self.eat("YR")
+                self.eat("IDENTIFIER")
+        
+        if self.current().type in ("TIL", "WILE"):
+            self.eat(self.current().type)
             self.parse_expression()
             
-        self.parse_code_block()
+        while self.current().type not in ("IM_OUTTA_YR", "EOF"):
+            self.statement()
+            
+        if self.current().type != "IM_OUTTA_YR":
+            self.record_error("Missing IM_OUTTA_YR at end of loop", self.current())
+        else:
+            self.eat("IM_OUTTA_YR")
+            if self.current().type == "IDENTIFIER":
+                self.eat("IDENTIFIER")
+
+    def function_def(self):
+        self.eat("HOW_IZ_I")
+        if self.current().type != "IDENTIFIER":
+            self.record_error("Invalid function name", self.current())
+        else:
+            self.eat("IDENTIFIER")
         
-        self.consume("IM_OUTTA_YR")
-        self.consume("IDENTIFIER") # Loop label
+        while self.current().type == "YR":
+            self.eat("YR")
+            self.eat("IDENTIFIER")
+            if self.current().type == "AN":
+                self.eat("AN")
+        
+        while self.current().type not in ("IF_U_SAY_SO", "EOF"):
+            self.statement()
+            
+        if self.current().type == "IF_U_SAY_SO":
+            self.eat("IF_U_SAY_SO")
+        else:
+            self.record_error("Missing IF U SAY SO at end of function", self.current())
+
+    def function_call(self):
+        self.eat("I_IZ")
+        if self.current().type != "IDENTIFIER":
+            self.record_error("Invalid function name in call", self.current())
+        else:
+            self.eat("IDENTIFIER")
+        
+        # Arguments? YR x AN YR y ...
+        while self.current().type == "YR":
+            self.eat("YR")
+            self.parse_expression()
+            if self.current().type == "AN":
+                self.eat("AN")
+        
+        # MKAY?
+        if self.current().type == "MKAY":
+            self.eat("MKAY")
+
+    def return_statement(self):
+        self.eat("FOUND_YR")
+        self.parse_expression()
 
     def parse_expression(self):
-        token = self.current_token()
-        if not token:
-            return
-
-        if token.type in ("SUM_OF", "DIFF_OF", "PRODUKT_OF", "QUOSHUNT_OF", "MOD_OF", 
-                          "BIGGR_OF", "SMALLR_OF", "BOTH_OF", "EITHER_OF", "WON_OF", 
-                          "BOTH_SAEM", "DIFFRINT"):
-            self.advance()
+        tok = self.current().type
+        if tok in ("SUM_OF", "DIFF_OF", "PRODUKT_OF", "QUOSHUNT_OF", "MOD_OF", 
+                   "BIGGR_OF", "SMALLR_OF", "BOTH_OF", "EITHER_OF", "WON_OF", 
+                   "BOTH_SAEM", "DIFFRINT"):
+            self.eat(tok)
             self.parse_expression()
-            self.consume("AN")
+            if self.current().type == "AN":
+                self.eat("AN")
             self.parse_expression()
-        elif token.type in ("ALL_OF", "ANY_OF"):
-            self.advance()
+        elif tok in ("ALL_OF", "ANY_OF"):
+            self.eat(tok)
             self.parse_expression()
-            while self.current_token() and self.current_token().type == "AN":
-                self.advance()
+            while self.current().type == "AN":
+                self.eat("AN")
                 self.parse_expression()
-            # Ends implicitly or with MKAY? regex doesn't have MKAY yet.
-        elif token.type == "NOT":
-            self.advance()
+            if self.current().type == "MKAY":
+                self.eat("MKAY")
+        elif tok == "NOT":
+            self.eat("NOT")
             self.parse_expression()
-        elif token.type == "SMOOSH":
-            self.advance()
+        elif tok == "SMOOSH":
+            self.eat("SMOOSH")
             self.parse_expression()
-            while self.current_token() and self.current_token().type == "AN":
-                self.advance()
+            while self.current().type == "AN":
+                self.eat("AN")
                 self.parse_expression()
-        elif token.type == "MAEK":
-            self.advance()
+        elif tok == "MAEK":
+            self.eat("MAEK")
             self.parse_expression()
-            if self.current_token().type == "A":
-                self.advance()
-            self.consume("TYPE")
-        elif token.type in ("IDENTIFIER", "IT"):
-            self.advance()
-        elif token.type in ("INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL"):
-            self.advance()
+            if self.current().type == "A":
+                self.eat("A")
+            self.eat("TYPE") 
+        elif tok in ("IDENTIFIER", "IT"):
+            self.eat(tok)
+        elif tok in ("INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL"):
+            self.eat(tok)
         else:
-            self.error(["Expression"])
+            self.record_error(f"Unexpected token in expression: {tok}", self.current())
+            self.position += 1
 
     def parse_literal(self):
-        if self.current_token().type in ("INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL"):
-            self.advance()
+        if self.current().type in ("INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL"):
+            self.eat(self.current().type)
         else:
-            self.error(["Literal"])
+            self.record_error("Expected literal", self.current())
 
     def is_expression_start(self, type):
         return type in ("IDENTIFIER", "IT", "INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL",
@@ -277,28 +325,28 @@ class Parser:
                         "BIGGR_OF", "SMALLR_OF", "BOTH_OF", "EITHER_OF", "WON_OF", 
                         "NOT", "ALL_OF", "ANY_OF", "BOTH_SAEM", "DIFFRINT", "SMOOSH", "MAEK")
 
-
-def main():
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python syntax2.py <lolcode_file.lol>", file=sys.stderr)
         sys.exit(2)
-    
+
     path = sys.argv[1]
-    code = ""
-    
-    if path == "-":
-        code = sys.stdin.read()
-    else:
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                code = f.read()
-        except Exception as e:
-            print(f"Error reading {path}: {e}", file=sys.stderr)
-            sys.exit(1)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            code = f.read()
+    except Exception as e:
+        print(f"Error reading {path}: {e}", file=sys.stderr)
+        sys.exit(1)
 
     tokens = get_tokens(code)
     parser = Parser(tokens)
-    parser.parse_program()
+    parser.parse()
 
-if __name__ == "__main__":
-    main()
+    if parser.errors:
+        print("\n--- ERRORS DETECTED ---")
+        for err in parser.errors:
+            print(err)
+        print(f"Total errors: {len(parser.errors)}")
+        sys.exit(1)
+    else:
+        print("No errors found.")

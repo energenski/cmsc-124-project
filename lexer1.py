@@ -62,6 +62,14 @@ TOKEN_LABELS = {
     "WTF": "Switch Start",
     "OMG": "Switch Case",
     "OMGWTF": "Switch Default Case",
+    "GTFO": "Break Statement",
+
+    #functions
+    "HOW_IZ_I": "Function Definition Start",
+    "IF_U_SAY_SO": "Function Definition End",
+    "I_IZ": "Function Call",
+    "FOUND_YR": "Return Statement",
+    "MKAY": "Infinite Arity End",
 
     #loop
     "IM_IN_YR": "Loop Start",
@@ -74,6 +82,7 @@ TOKEN_LABELS = {
 
     #miscellaneous lexemes
     "AN": "Multiple Parameter Separator",
+    "PLUS": "Concatenation Operator",
     "VERSION": "Version Marker",
     "IT": "Temporary Variable",
     "TYPE": "Type Literal",
@@ -134,6 +143,7 @@ TOKEN_REGEX = OrderedDict([
     ("VISIBLE", r"\bVISIBLE\b"),
     ("GIMMEH", r"\bGIMMEH\b"),
     ("AN", r"\bAN\b"),
+    ("PLUS", r"\+"),
     ("IT", r"\bIT\b"),
     ("VERSION", r"\bVERSION\b"),
 
@@ -146,6 +156,14 @@ TOKEN_REGEX = OrderedDict([
     ("WTF", r"\bWTF\??"),
     ("OMG", r"\bOMG\b"),
     ("OMGWTF", r"\bOMGWTF\b"),
+    ("GTFO", r"\bGTFO\b"),
+
+    #functions
+    ("HOW_IZ_I", r"\bHOW\s+IZ\s+I\b"),
+    ("IF_U_SAY_SO", r"\bIF\s+U\s+SAY\s+SO\b"),
+    ("I_IZ", r"\bI\s+IZ\b"),
+    ("FOUND_YR", r"\bFOUND\s+YR\b"),
+    ("MKAY", r"\bMKAY\b"),
 
     #loops
     ("IM_IN_YR", r"\bIM\s+IN\s+YR\b"),
