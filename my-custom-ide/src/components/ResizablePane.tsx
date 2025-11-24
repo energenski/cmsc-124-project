@@ -26,9 +26,9 @@ export default function ResizablePane({
       axis="y"
       resizeHandles={["n"]}
       onResize={(_, { size }) => setHeight(size.height)}
-      handle={<span className="resizable-handle" />}
+      handle={<span className="resize-handle" />}
     >
-      <div style={{ height: "100%", overflow: "auto", position: "relative" }}>
+      <div style={{ height: "100%", position: "relative" }}>
         {children}
       </div>
     </ResizableBox>

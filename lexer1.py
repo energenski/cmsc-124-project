@@ -122,6 +122,8 @@ TOKEN_REGEX = OrderedDict([
     ("BOTH_OF", r"\bBOTH\s+OF\b"),
     ("EITHER_OF", r"\bEITHER\s+OF\b"),
     ("WON_OF", r"\bWON\s+OF\b"),
+    ("ALL_OF", r"\bALL\s+OF\b"),
+    ("ANY_OF", r"\bANY\s+OF\b"),
 
     ("ITZ", r"\bITZ\b"),
     ("R", r"\bR\b"),
@@ -130,9 +132,29 @@ TOKEN_REGEX = OrderedDict([
     ("MAEK", r"\bMAEK\b"),
     ("A", r"\bA\b"),
     ("VISIBLE", r"\bVISIBLE\b"),
+    ("GIMMEH", r"\bGIMMEH\b"),
     ("AN", r"\bAN\b"),
     ("IT", r"\bIT\b"),
     ("VERSION", r"\bVERSION\b"),
+
+    #control flow
+    ("ORLY", r"\bORLY\??"),
+    ("YA_RLY", r"\bYA\s+RLY\b"),
+    ("MEBBE", r"\bMEBBE\b"),
+    ("NO_WAI", r"\bNO\s+WAI\b"),
+    ("OIC", r"\bOIC\b"),
+    ("WTF", r"\bWTF\??"),
+    ("OMG", r"\bOMG\b"),
+    ("OMGWTF", r"\bOMGWTF\b"),
+
+    #loops
+    ("IM_IN_YR", r"\bIM\s+IN\s+YR\b"),
+    ("UPPIN", r"\bUPPIN\b"),
+    ("NERFIN", r"\bNERFIN\b"),
+    ("YR", r"\bYR\b"),
+    ("TIL", r"\bTIL\b"),
+    ("WILE", r"\bWILE\b"),
+    ("IM_OUTTA_YR", r"\bIM\s+OUTTA\s+YR\b"),
 
     #literals
     ("TROOF_LITERAL", r"\b(WIN|FAIL|true|false)\b"),
@@ -201,46 +223,86 @@ def print_token(type, value):
         print(f"Unknown token: {value}")
     return
 
-#it reads the raw LOLCODE text, character by character, and converts it into tokens while ignoring comments and whitespace.
-def tokenize(code):
-    in_comment = False  #flag to track if the scanner is currently inside a multi-line comment block
-    position = 0        #initializes the starting index to the beginning of the code string
+class Token:
+    def __init__(self, type, value, line, column):
+        self.type = type
+        self.value = value
+        self.line = line
+        self.column = column
+        self.label = TOKEN_LABELS.get(type, "Unknown")
+
+    def __repr__(self):
+        return f"Token({self.type}, {self.value}, {self.line}, {self.column})"
+
+def get_tokens(code):
+    tokens = []
+    in_comment = False
+    position = 0
+    line_num = 1
+    line_start = 0
 
     while position < len(code):
-        match = token_re.match(code, position)  #match the longest valid token starting from the position
+        match = token_re.match(code, position)
         
         if match:
-            type = match.lastgroup      #extract token name
-            value = match.group()       #return actual substring/lexeme
+            type = match.lastgroup
+            value = match.group()
             
-            if type == "BTW":           #skip single line comments
+            # Calculate column
+            column = position - line_start + 1
+
+            if type == "NEWLINE":
+                line_num += 1
+                line_start = match.end()
+                position = match.end()
+                continue
+            
+            if type == "BTW":
                 newline_pos = code.find('\n', position)
                 position = newline_pos + 1 if newline_pos != -1 else len(code)
+                line_num += 1
+                line_start = position
                 continue
-            elif type == "OBTW":        #enter multi-line comments
+            elif type == "OBTW":
                 in_comment = True
                 position = match.end()
                 continue
-            elif type == "TLDR":        #leave multi-line comments
+            elif type == "TLDR":
                 in_comment = False
                 position = match.end()
                 continue
                 
-            if in_comment:              #skip comment content
+            if in_comment:
+                if '\n' in value:
+                     line_num += value.count('\n')
+                     last_newline = value.rfind('\n')
+                     line_start = position + last_newline + 1
                 position = match.end()
                 continue
             
-            if type in ("WHITESPACE", "NEWLINE", "LINEBREAK"):  #consume and discard these spaces
+            if type in ("WHITESPACE", "LINEBREAK"):
                 position = match.end()
                 continue
 
-            print_token(type, value)    #add final label to the token
-            position = match.end()      #move to the end of matched token
+            tokens.append(Token(type, value, line_num, column))
+            position = match.end()
             
         else:
+            # Handle unknown character
             unknown_char = code[position]
-            print(f"Unknown token: {unknown_char}") #isolate single char that can't be matched
+            if unknown_char == '\n':
+                line_num += 1
+                line_start = position + 1
+            else:
+                print(f"Unknown token: {unknown_char}")
             position += 1
+            
+    return tokens
+
+def tokenize(code):
+    tokens = get_tokens(code)
+    for token in tokens:
+        print_token(token.type, token.value)
 
 def main():
     #use argv to only provide input during runtime
