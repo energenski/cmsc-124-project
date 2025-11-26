@@ -82,6 +82,42 @@ def run_syntax():
 
     return jsonify({"output": output})
 
+# Path to the semantics script
+SEMANTICS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../semantics/semantics1.py"))
+
+@app.route('/run-semantics', methods=['POST'])
+def run_semantics():
+    data = request.json
+    code = data.get('code', '')
+
+    if not code:
+        return jsonify({"output": "No code provided."}), 400
+
+    with tempfile.NamedTemporaryFile(mode='w+', suffix='.lol', delete=False, encoding='utf-8') as temp:
+        temp.write(code)
+        temp_path = temp.name
+
+    try:
+        result = subprocess.run(
+            ['python', SEMANTICS_PATH, temp_path],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        output = result.stdout
+        if result.stderr:
+            output += "\nError:\n" + result.stderr
+
+    except Exception as e:
+        output = f"Server Error: {str(e)}"
+    
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+    return jsonify({"output": output})
+
 if __name__ == '__main__':
     print(f"Starting server... Lexer path: {LEXER_PATH}")
     app.run(port=5000, debug=True)

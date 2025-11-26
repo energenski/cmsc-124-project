@@ -36,14 +36,16 @@ function App() {
     setActiveFile(newName);
   };
 
-  const runCode = async (mode: "lexer" | "syntax" | "grammar") => {
+  const runCode = async (mode: "lexer" | "syntax" | "semantics") => {
     setIsRunning(true);
     const modeName = mode.charAt(0).toUpperCase() + mode.slice(1);
     setOutput((prev) => prev + `\n> Running ${modeName} Analysis on ${activeFile}...\n`);
 
     let endpoint = "http://localhost:5000/run"; // Default to lexer
-    if (mode === "syntax" || mode === "grammar") {
+    if (mode === "syntax") {
       endpoint = "http://localhost:5000/run-syntax";
+    } else if (mode === "semantics") {
+      endpoint = "http://localhost:5000/run-semantics";
     }
 
     try {
@@ -151,12 +153,12 @@ function App() {
             </button>
             <button
               className="btn btn-primary"
-              onClick={() => runCode("grammar")}
+              onClick={() => runCode("semantics")}
               disabled={isRunning}
-              title="Run Grammar Check"
+              title="Run semantics Check"
             >
               <span>{isRunning ? "⏳" : "📖"}</span>
-              Grammar
+              Semantics
             </button>
           </div>
         </div>
