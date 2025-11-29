@@ -1,5 +1,6 @@
 import sys
 
+# data types
 class Types:
     NOOB = 'NOOB'       # uninitialized
     NUMBR = 'NUMBR'     # int
@@ -8,29 +9,36 @@ class Types:
     TROOF = 'TROOF'     # boolean
     TYPE = 'TYPE'       # type literal
 
+# main class for lolcode
 class Interpreter:
     def __init__(self):
+        # store var
         self.scopes = [{}]  # Stack of scopes: {var_name: {'value': val, 'type': type}}
         self.functions = {} # func_name -> {params, body}
+        # here sin-save ng interpreter yung text
         self.output_buffer = []
         self.it_register = {'value': None, 'type': Types.NOOB}
         self.return_value = None # For function returns
         self.should_return = False
 
+    # adds new dict
     def push_scope(self):
         self.scopes.append({})
 
+    # tanggal
     def pop_scope(self):
         self.scopes.pop()
 
     def current_scope(self):
         return self.scopes[-1]
 
+    # creates a variable in the current (topmost) scope
     def declare_variable(self, name, value=None, type_=Types.NOOB):
         if name in self.current_scope():
             raise Exception(f"Variable '{name}' already declared in current scope")
         self.current_scope()[name] = {'value': value, 'type': type_}
 
+    # looks at the current scope first and if not found, it checks the outer scope hanngang sa global
     def get_variable(self, name):
         for scope in reversed(self.scopes):
             if name in scope:
@@ -44,15 +52,17 @@ class Interpreter:
                 return
         raise Exception(f"Undeclared variable '{name}'")
 
+    # Converts data from one type to another
     def cast_value(self, value, from_type, to_type):
         if from_type == to_type:
             return value
-        
+        # yung troof to yarn nagiging win (true) and fail (false)
         if to_type == Types.YARN:
             if from_type == Types.NOOB: return ""
             if from_type == Types.TROOF: return "WIN" if value else "FAIL"
             return str(value)
             
+        # truncates decimal
         if to_type == Types.NUMBR:
             try:
                 if from_type == Types.NUMBAR: return int(value)
@@ -60,7 +70,8 @@ class Interpreter:
                 if from_type == Types.TROOF: return 1 if value else 0
             except:
                 return 0
-            
+        
+        # Adds decimal pts
         if to_type == Types.NUMBAR:
             try:
                 if from_type == Types.NUMBR: return float(value)
@@ -77,6 +88,7 @@ class Interpreter:
             
         return value # Fallback
 
+    # main function na magpprocess sa Abstract syntax tree (ast)
     def execute(self, ast):
         try:
             self.execute_node(ast)
@@ -84,12 +96,14 @@ class Interpreter:
         except Exception as e:
             return f"Runtime Error: {str(e)}"
 
+    # recursive func that interpret each block/statemt
     def execute_node(self, node):
         if not node: return
         if self.should_return: return
 
         ntype = node.get('node_type')
 
+        # Loops through a list of statements and executes them one by one
         if ntype == 'program':
             for stmt in node.get('body', []):
                 self.execute_node(stmt)
@@ -98,6 +112,7 @@ class Interpreter:
             for stmt in node.get('body', []):
                 self.execute_node(stmt)
 
+        # calculates the initial value
         elif ntype == 'var_decl':
             val = None
             t = Types.NOOB
@@ -105,6 +120,7 @@ class Interpreter:
                 val, t = self.evaluate(node.get('value'))
             self.declare_variable(node.get('name'), val, t)
 
+        # update lag variable depende sa expression
         elif ntype == 'assignment':
             val, t = self.evaluate(node.get('expr'))
             target = node.get('target')
@@ -113,6 +129,7 @@ class Interpreter:
             else:
                 self.set_variable(target, val, t)
 
+        # Evaluates arguments, casts them to strings, and adds them sa output_buffer
         elif ntype == 'visible':
             out_parts = []
             for arg in node.get('args', []):
@@ -146,6 +163,7 @@ class Interpreter:
                         self.execute_node(stmt)
                         if self.should_return: return
 
+        # check yung value ng IT reg and compare sa literal values ng bawta case
         elif ntype == 'switch_stmt':
             it_val = self.it_register['value']
             matched = False
@@ -164,6 +182,7 @@ class Interpreter:
                     self.execute_node(stmt)
                     if self.should_return: return
 
+        # check yung TIL or WILE cond para mag break
         elif ntype == 'loop':
             op = node.get('operation')
             cond = node.get('condition')
@@ -188,18 +207,20 @@ class Interpreter:
                     var_name = op['variable']
                     var_info = self.get_variable(var_name)
                     val = var_info['value']
-                    if op['type'] == 'UPPIN':
+                    if op['type'] == 'UPPIN': # incre,ent
                         val += 1
-                    elif op['type'] == 'NERFIN':
+                    elif op['type'] == 'NERFIN': #decrement
                         val -= 1
                     self.set_variable(var_name, val, var_info['type'])
 
         elif ntype == 'break':
             pass 
 
+        #save lang buong  function node
         elif ntype == 'func_def':
             self.functions[node.get('name')] = node
 
+        # check if same count ng args and params
         elif ntype == 'func_call':
             func_name = node.get('name')
             if func_name not in self.functions:
@@ -236,6 +257,7 @@ class Interpreter:
             else:
                 self.it_register = {'value': None, 'type': Types.NOOB}
 
+        # reutrn para mag stop yung pag run
         elif ntype == 'return':
             val, t = self.evaluate(node.get('value'))
             self.return_value = {'value': val, 'type': t}
@@ -250,6 +272,7 @@ class Interpreter:
                 new_val = self.cast_value(var_info['value'], var_info['type'], target_type_str)
                 self.set_variable(target, new_val, target_type_str)
 
+    # compute and turn back the value and type sa expression
     def evaluate(self, node):
         ntype = node.get('node_type')
         
@@ -279,6 +302,7 @@ class Interpreter:
             
             return val, Types.ANY
 
+        # compute the result of two args operation 
         elif ntype == 'binary_op':
             left_val, left_type = self.evaluate(node.get('left'))
             right_val, right_type = self.evaluate(node.get('right'))
@@ -309,11 +333,13 @@ class Interpreter:
             elif op == 'DIFFRINT':
                 return (left_val != right_val), Types.TROOF
                 
+        # compute the result of single arg operation
         elif ntype == 'unary_op':
             val, t = self.evaluate(node.get('operand'))
             if node.get('op') == 'NOT':
                 return not bool(val), Types.TROOF
 
+        # multi-arg
         elif ntype == 'n_ary_op':
             op = node.get('op')
             operands = [self.evaluate(x)[0] for x in node.get('operands')]
@@ -324,7 +350,7 @@ class Interpreter:
                 return any(operands), Types.TROOF
             elif op == 'SMOOSH':
                 return "".join(map(str, operands)), Types.YARN
-
+        # evaluate expression tas typecast
         elif ntype == 'type_cast':
             # MAEK
             val, t = self.evaluate(node.get('expr'))
