@@ -5,8 +5,7 @@ I HAS A monde
 I HAS A num ITZ 17
 VISIBLE SUM OF num AN hello
 BUHBYE
-KTHXBYE
-KTHXBYE
+
 GIMMEH monde
 
    VISIBLE SUM OF monde AN num

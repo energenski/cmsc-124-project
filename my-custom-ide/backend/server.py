@@ -83,7 +83,7 @@ def run_syntax():
     return jsonify({"output": output})
 
 # Path to the semantics script
-SEMANTICS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../semantics/semantics1.py"))
+SEMANTICS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../semantics_runner.py"))
 
 @app.route('/run-semantics', methods=['POST'])
 def run_semantics():
@@ -102,6 +102,7 @@ def run_semantics():
             ['python', SEMANTICS_PATH, temp_path],
             capture_output=True,
             text=True,
+            input='',  # Pass empty input to prevent blocking on stdin
             timeout=5
         )
         

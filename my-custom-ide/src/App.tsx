@@ -79,7 +79,7 @@ function App() {
     }
   };
 
-  // 🔽 Handle file input click and read
+  //Handle file input click and read
   const handleOpenFiles = () => {
     fileInputRef.current?.click();
   };
@@ -123,7 +123,7 @@ function App() {
       {/* Header */}
       <header className="header">
         <div className="header-title">
-          <span>⚡</span> LOLCODE IDE
+          <span>🐈</span> LOLCODE IDE
         </div>
         <div className="header-actions">
           <button className="btn btn-secondary" onClick={addFile}>
@@ -139,7 +139,7 @@ function App() {
               disabled={isRunning}
               title="Run Lexical Analysis"
             >
-              <span>{isRunning ? "⏳" : "🔤"}</span>
+              <span>{isRunning ? "⏳" : "▶️"}</span>
               Lexer
             </button>
             <button
@@ -148,7 +148,7 @@ function App() {
               disabled={isRunning}
               title="Run Syntax Analysis"
             >
-              <span>{isRunning ? "⏳" : "📐"}</span>
+              <span>{isRunning ? "⏳" : "▶️"}</span>
               Syntax
             </button>
             <button
@@ -157,7 +157,7 @@ function App() {
               disabled={isRunning}
               title="Run semantics Check"
             >
-              <span>{isRunning ? "⏳" : "📖"}</span>
+              <span>{isRunning ? "⏳" : "▶️"}</span>
               Semantics
             </button>
           </div>
