@@ -1,6 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import ResizablePane from "./components/ResizablePane";
+import ResizableSidebar from "./components/ResizableSidebar";
+import { io } from "socket.io-client";
 
 import "./index.css";
 
@@ -17,10 +19,52 @@ function App() {
   const [output, setOutput] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(200);
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [symbolTable, setSymbolTable] = useState<Record<string, any>>({});
+
+  // Socket connection
+  const [socket] = useState(() => io("http://localhost:5000"));
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
 
   const activeCode = files.find((f) => f.name === activeFile)?.code || "";
+
+  useEffect(() => {
+    socket.on("connect", () => {
+      console.log("Connected to server");
+    });
+
+    socket.on("terminal_output", (data) => {
+      setOutput((prev) => prev + data.output);
+    });
+
+    socket.on("symbol_table", (data) => {
+      try {
+        const table = JSON.parse(data.table);
+        setSymbolTable(table);
+      } catch (e) {
+        console.error("Failed to parse symbol table", e);
+      }
+    });
+
+    socket.on("process_finished", () => {
+      setIsRunning(false);
+      setOutput((prev) => prev + "\n> Done.\n");
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("terminal_output");
+      socket.off("symbol_table");
+      socket.off("process_finished");
+    };
+  }, [socket]);
+
+  // Auto-scroll to bottom of terminal
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [output]);
 
   const updateCode = (newCode: string) => {
     setFiles((prev) =>
@@ -36,38 +80,19 @@ function App() {
     setActiveFile(newName);
   };
 
-  const runCode = async (mode: "lexer" | "syntax" | "semantics") => {
+  const runCode = (mode: "lexer" | "syntax" | "semantics") => {
     setIsRunning(true);
-    const modeName = mode.charAt(0).toUpperCase() + mode.slice(1);
-    setOutput((prev) => prev + `\n> Running ${modeName} Analysis on ${activeFile}...\n`);
+    setOutput(""); // Clear output
+    setSymbolTable({}); // Clear symbol table
+    socket.emit("run_code", { code: activeCode, mode });
+  };
 
-    let endpoint = "http://localhost:5000/run"; // Default to lexer
-    if (mode === "syntax") {
-      endpoint = "http://localhost:5000/run-syntax";
-    } else if (mode === "semantics") {
-      endpoint = "http://localhost:5000/run-semantics";
-    }
-
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ code: activeCode }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setOutput((prev) => prev + `> Output:\n${data.output}\n> Done.\n`);
-      } else {
-        setOutput((prev) => prev + `> Error:\n${data.output}\n`);
-      }
-    } catch (error) {
-      setOutput((prev) => prev + `> Connection Error: Is the backend server running?\n${error}\n`);
-    } finally {
-      setIsRunning(false);
+  const handleTerminalInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const input = e.currentTarget.value;
+      socket.emit("submit_input", { input });
+      setOutput((prev) => prev + input + "\n"); // Echo locally
+      e.currentTarget.value = "";
     }
   };
 
@@ -206,21 +231,56 @@ function App() {
 
       {/* Editor + Terminal */}
       <div className="main-content">
-        <div className="editor-wrapper">
-          <Editor
-            height="100%"
-            defaultLanguage="python" // keeping python for syntax highlighting approximation
-            theme="vs-dark"
-            value={activeCode}
-            onChange={(value) => updateCode(value || "")}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              fontFamily: "'JetBrains Mono', Consolas, monospace",
-              padding: { top: 16 },
-              scrollBeyondLastLine: false,
-            }}
-          />
+        <div className="editor-wrapper" style={{ display: 'flex', flexDirection: 'row' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Editor
+              height="100%"
+              defaultLanguage="python" // keeping python for syntax highlighting approximation
+              theme="vs-dark"
+              value={activeCode}
+              onChange={(value) => updateCode(value || "")}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                fontFamily: "'JetBrains Mono', Consolas, monospace",
+                padding: { top: 16 },
+                scrollBeyondLastLine: false,
+              }}
+            />
+          </div>
+          <ResizableSidebar width={sidebarWidth} setWidth={setSidebarWidth}>
+            <div className="symbol-table-container">
+              <div className="symbol-table-header">Symbol Table</div>
+              <div className="symbol-table-content">
+                <table className="st-table">
+                  <thead>
+                    <tr>
+                      <th>Variable</th>
+                      <th>Value</th>
+                      <th>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(symbolTable).length === 0 ? (
+                      <tr>
+                        <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          No variables
+                        </td>
+                      </tr>
+                    ) : (
+                      Object.entries(symbolTable).map(([name, info]) => (
+                        <tr key={name}>
+                          <td>{name}</td>
+                          <td>{String(info.value)}</td>
+                          <td>{info.type}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </ResizableSidebar>
         </div>
 
         <ResizablePane
@@ -234,13 +294,22 @@ function App() {
               Terminal Output
             </div>
             <div className="terminal-content">
-              {output ? (
-                <div>{output}</div>
-              ) : (
-                <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                  Ready to run code...
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                {output}
+              </pre>
+              {isRunning && (
+                <div className="terminal-input-line">
+                  <span className="terminal-prompt">{">"}</span>
+                  <input
+                    type="text"
+                    className="terminal-input"
+                    onKeyDown={handleTerminalInput}
+                    placeholder="Type input here..."
+                    autoFocus
+                  />
                 </div>
               )}
+              <div ref={terminalEndRef} />
             </div>
           </div>
         </ResizablePane>
