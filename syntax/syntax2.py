@@ -234,12 +234,15 @@ class Parser:
         # Expect at least one expression
         args.append(self.parse_expression())
 
-        # Collect additional expressions separated by AN or +
-        while self.current().type in ("AN", "PLUS"):
-            self.eat(self.current().type)
-            # Stop if we hit newline or EOF
+        # Collect additional expressions separated by AN, PLUS, or just whitespace (implicit)
+        while self.current().type in ("AN", "PLUS") or self.is_expression_start(self.current().type):
+            if self.current().type in ("AN", "PLUS"):
+                self.eat(self.current().type)
+            
+            # Stop if we hit newline or EOF (though is_expression_start handles most checks)
             if self.current().type in ("EOL", "EOF"):
                 break
+                
             args.append(self.parse_expression())
 
         return {"node_type": "visible", "args": args, "line": line}
