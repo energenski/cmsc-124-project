@@ -497,7 +497,12 @@ class Interpreter:
             elif op == 'ANY_OF':
                 return any(operands), Types.TROOF
             elif op == 'SMOOSH':
-                return "".join(map(str, operands)), Types.YARN
+                operands = []
+                for x in node.get('operands'):
+                    val, t = self.evaluate(x)
+                    operands.append(val)
+                result = "".join(map(str, operands))
+                return result, Types.YARN
         # evaluate expression tas typecast
         elif ntype == 'type_cast':
             # MAEK
@@ -549,7 +554,7 @@ if __name__ == "__main__":
         tokens = get_tokens(code)
         parser = Parser(tokens)
         ast = parser.parse()
-        
+  
         if parser.errors:
             print("Syntax Errors:")
             for err in parser.errors:

@@ -230,13 +230,18 @@ class Parser:
         line = self.current().line
         self.eat("VISIBLE")
         args = []
+
+        # Expect at least one expression
         args.append(self.parse_expression())
-        while self.current().type in ("AN", "PLUS") or self.is_expression_start(self.current().type):
-            # Handle optional separators ('AN' or '+')
-            if self.current().type in ("AN", "PLUS"):
-                self.eat(self.current().type)
-            if self.is_expression_start(self.current().type):
-                args.append(self.parse_expression())
+
+        # Collect additional expressions separated by AN or +
+        while self.current().type in ("AN", "PLUS"):
+            self.eat(self.current().type)
+            # Stop if we hit newline or EOF
+            if self.current().type in ("EOL", "EOF"):
+                break
+            args.append(self.parse_expression())
+
         return {"node_type": "visible", "args": args, "line": line}
 
     # Parses an if statement
