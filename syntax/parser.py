@@ -152,21 +152,57 @@ class Parser:
     #does not support expression before O rly
     #does not support MEBBE
     def if_statement(self):
-        self.eat("ORLY")
+        # --- Step 1: The condition before O RLY? is usually an expression that sets IT ---
+        condition_node = self.previous()  # or parse expression just before O RLY?
+
+        self.eat("ORLY")  # Consume O RLY?
+
+        # --- Step 2: Parse YA RLY block ---
         if self.current().type != "YA_RLY":
             self.record_error("Missing YA_RLY after ORLY", self.current())
+            true_block = []
         else:
             self.eat("YA_RLY")
-        while self.current().type not in ("NO_WAI", "OIC", "EOF"):
-            self.statement()
+            true_block = []
+            while self.current().type not in ("MEBBE", "NO_WAI", "OIC", "EOF"):
+                true_block.append(self.statement())
+
+        # --- Step 3: Parse zero or more MEBBE (else-if) blocks ---
+        elif_blocks = []
+        while self.current().type == "MEBBE":
+            self.eat("MEBBE")
+            # MEBBE is followed by its condition expression on the same line
+            mebbe_condition = self.parse_expression()
+            mebbe_body = []
+            while self.current().type not in ("MEBBE", "NO_WAI", "OIC", "EOF"):
+                mebbe_body.append(self.statement())
+            elif_blocks.append({
+                'condition': mebbe_condition,
+                'body': mebbe_body
+            })
+
+        # --- Step 4: Parse optional NO WAI block ---
+        else_block = []
         if self.current().type == "NO_WAI":
             self.eat("NO_WAI")
             while self.current().type not in ("OIC", "EOF"):
-                self.statement()
+                else_block.append(self.statement())
+
+        # --- Step 5: Eat OIC ---
         if self.current().type != "OIC":
             self.record_error("Missing OIC at end of IF block", self.current())
         else:
             self.eat("OIC")
+
+        # --- Step 6: Return AST node ---
+        return {
+            'node_type': 'if_stmt',
+            'condition': condition_node,
+            'true_block': true_block,
+            'else_if_blocks': elif_blocks,
+            'else_block': else_block
+        }
+
 
     #parses loop syntax
     #can't validate variables and can't handle nested loops

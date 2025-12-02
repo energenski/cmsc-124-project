@@ -1,36 +1,44 @@
-HAI 1.2
-I HAS A var ITZ 10
-SUM OF var AN 5
-DIFF OF 10 AN 2
-PRODUKT OF 3 AN 4
-QUOSHUNT OF 10 AN 2
-MOD OF 10 AN 3
-BIGGR OF 10 AN 2
-SMALLR OF 10 AN 2
-BOTH OF WIN AN FAIL
-EITHER OF WIN AN FAIL
-WON OF WIN AN FAIL
-NOT WIN
-ALL OF WIN AN WIN
-ANY OF WIN AN FAIL
-BOTH SAEM 10 AN 10
-DIFFRINT 10 AN 20
-SMOOSH "hello" AN "world"
-MAEK var A NUMBR
-IS NOW A NUMBR
-VISIBLE "hello"
-GIMMEH var
-ORLY?
-YA RLY
-NO WAI
-OIC
-WTF?
-OMG 1
-OMGWTF
-IM IN YR loop
-UPPIN YR var
-NERFIN YR var
-TIL var
-WILE var
-IM OUTTA YR loop
+HAI
+	WAZZUP
+		I HAS A choice
+		I HAS A input
+	BUHBYE
+
+	BTW if w/o MEBBE, 1 only, everything else is invalid
+	VISIBLE "1. Compute age"
+	VISIBLE "2. Compute tip"
+	VISIBLE "3. Compute square area"
+	VISIBLE "0. Exit"
+
+	VISIBLE "Choice: "
+	GIMMEH choice
+
+	BOTH SAEM choice AN 1
+	O RLY?
+		YA RLY
+			VISIBLE "Enter birth year: "
+			GIMMEH input
+			VISIBLE DIFF OF 2022 AN input
+
+		MEBBE BOTH SAEM choice AN 2
+			VISIBLE "Enter bill cost: "
+			GIMMEH input
+			VISIBLE "Tip: " PRODUKT OF input AN 0.1
+		MEBBE BOTH SAEM choice AN 3
+			VISIBLE "Enter width: "
+			GIMMEH input
+			VISIBLE "Square Area: " PRODUKT OF input AN input
+		MEBBE BOTH SAEM choice AN 0
+			VISIBLE "Goodbye"
+
+		NO WAI
+			VISIBLE "Invalid Input!"
+	OIC
+
+	DIFFRINT BIGGR OF 3 AN choice AN 3
+	O RLY?
+		YA RLY
+			VISIBLE "Invalid input is > 3."
+	OIC
+
 KTHXBYE

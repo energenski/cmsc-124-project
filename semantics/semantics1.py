@@ -1,5 +1,6 @@
 import sys
 
+
 # data types
 class Types:
     NOOB = 'NOOB'       # uninitialized
@@ -77,9 +78,7 @@ class Interpreter:
         # 2. To YARN
         if to_type == Types.YARN:
             if from_type == Types.NUMBAR:
-                # Truncate to two decimal places for YARN casting
-                # This is a key difference from standard Python float-to-string conversion
-                return f"{value:.2f}"
+                return str(value)
             if from_type == Types.TROOF:
                 return "WIN" if value else "FAIL"
             # NUMBR to YARN just converts to string 
@@ -144,6 +143,7 @@ class Interpreter:
         if self.should_return: return
 
         ntype = node.get('node_type')
+        # print(f"EXECUTE NODE: {ntype}")
 
         # Loops through a list of statements and executes them one by one
         if ntype == 'program':
@@ -187,30 +187,44 @@ class Interpreter:
             sys.stdout.flush()
 
         elif ntype == 'if_stmt':
-            # Check IT register
+
+            # ORLY uses the current value in IT register
+            # Cast IT to TROOF
             condition_val = self.cast_value(self.it_register['value'], self.it_register['type'], Types.TROOF)
-            
-            executed = False
+
+            branch_executed = False
+
+            # YA RLY block
             if condition_val:
                 for stmt in node.get('true_block', []):
                     self.execute_node(stmt)
                     if self.should_return: return
-                executed = True
-            else:
-                # Check else ifs
+                branch_executed = True
+
+            # MEBBE blocks
+            if not branch_executed:
                 for elif_block in node.get('else_if_blocks', []):
-                    cond, _ = self.evaluate(elif_block['condition'])
-                    if cond: # Implicitly cast to TROOF in python
+                    # Evaluate MEBBE condition
+                    # Note: In LOLCODE, expressions in flow control usually update IT.
+                    # We evaluate, update IT, then check TROOFness.
+                    val, t = self.evaluate(elif_block['condition'])
+                    self.it_register = {'value': val, 'type': t}
+                    
+                    cond_val = self.cast_value(val, t, Types.TROOF)
+                    
+                    if cond_val:
                         for stmt in elif_block['body']:
                             self.execute_node(stmt)
                             if self.should_return: return
-                        executed = True
-                        break
-                
-                if not executed:
-                    for stmt in node.get('else_block', []):
-                        self.execute_node(stmt)
-                        if self.should_return: return
+                        branch_executed = True
+                        break  # Stop after first true MEBBE
+
+            # NO WAI block
+            if not branch_executed:
+                for stmt in node.get('else_block', []):
+                    self.execute_node(stmt)
+                    if self.should_return: return
+
 
         # check yung value ng IT reg and compare sa literal values ng bawta case
         elif ntype == 'switch_stmt':
@@ -475,9 +489,46 @@ class Interpreter:
             # --- Comparison Operations (NO implicit casting) ---
             # Comparisons are done using the raw values/types.
             elif op == 'BOTH_SAEM':
-                return (left_val == right_val and left_type == right_type), Types.TROOF
+                # Relaxed comparison: allow implicit casting
+                if left_type == right_type:
+                    return (left_val == right_val), Types.TROOF
+                
+                # NUMBR vs NUMBAR
+                if left_type in (Types.NUMBR, Types.NUMBAR) and right_type in (Types.NUMBR, Types.NUMBAR):
+                    return (float(left_val) == float(right_val)), Types.TROOF
+                
+                # YARN vs NUMBR/NUMBAR
+                try:
+                    if left_type == Types.YARN and right_type in (Types.NUMBR, Types.NUMBAR):
+                        return (float(left_val) == float(right_val)), Types.TROOF
+                    if right_type == Types.YARN and left_type in (Types.NUMBR, Types.NUMBAR):
+                        return (float(left_val) == float(right_val)), Types.TROOF
+                except ValueError:
+                    pass # Casting failed, so they are different
+                
+                return False, Types.TROOF
+
             elif op == 'DIFFRINT':
-                return (left_val != right_val or left_type != right_type), Types.TROOF
+                # DIFFRINT is NOT BOTH_SAEM
+                # We can reuse the logic by inverting the result of BOTH_SAEM logic
+                # But for clarity/performance, we can just copy-paste and invert or call a helper.
+                # Let's just duplicate logic but inverted.
+                
+                if left_type == right_type:
+                    return (left_val != right_val), Types.TROOF
+                
+                if left_type in (Types.NUMBR, Types.NUMBAR) and right_type in (Types.NUMBR, Types.NUMBAR):
+                    return (float(left_val) != float(right_val)), Types.TROOF
+                
+                try:
+                    if left_type == Types.YARN and right_type in (Types.NUMBR, Types.NUMBAR):
+                        return (float(left_val) != float(right_val)), Types.TROOF
+                    if right_type == Types.YARN and left_type in (Types.NUMBR, Types.NUMBAR):
+                        return (float(left_val) != float(right_val)), Types.TROOF
+                except ValueError:
+                    pass 
+                
+                return True, Types.TROOF
                 
             raise Exception(f"Unknown binary operation: {op}")
                 

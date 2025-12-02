@@ -148,7 +148,7 @@ TOKEN_REGEX = OrderedDict([
     ("VERSION", r"\bVERSION\b"),
 
     #control flow
-    ("ORLY", r"\bORLY\??"),
+    ("ORLY", r"\b(O\s+RLY|ORLY)\??"),
     ("YA_RLY", r"\bYA\s+RLY\b"),
     ("MEBBE", r"\bMEBBE\b"),
     ("NO_WAI", r"\bNO\s+WAI\b"),
