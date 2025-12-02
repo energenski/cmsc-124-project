@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import subprocess
@@ -7,6 +7,8 @@ import tempfile
 import threading
 import queue
 import time
+import tkinter as tk
+from tkinter import filedialog
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -163,6 +165,59 @@ def handle_input(data):
                 emit('terminal_output', {'output': f"\nError writing input: {e}\n"})
         else:
             emit('terminal_output', {'output': "\nProcess is not running.\n"})
+
+@app.route('/open_file', methods=['GET'])
+def open_file_endpoint():
+    try:
+        # Run the dialog script in a separate process to avoid Tkinter threading issues
+        dialog_script = os.path.join(os.path.dirname(__file__), 'file_dialog.py')
+        
+        # Use subprocess to run the script and capture output
+        # python executable might be 'python' or 'python3' depending on system, but 'python' is standard on Windows
+        process = subprocess.Popen(
+            ['python', dialog_script],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        stdout, stderr = process.communicate()
+        
+        if stderr:
+             print(f"Dialog error: {stderr}")
+        
+        file_path = stdout.strip()
+        
+        if not file_path:
+            return jsonify({'error': 'No file selected'}), 400
+            
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        return jsonify({
+            'name': os.path.basename(file_path),
+            'path': file_path,
+            'code': content
+        })
+    except Exception as e:
+        print(f"Error opening file: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/save_file', methods=['POST'])
+def save_file_endpoint():
+    data = request.json
+    file_path = data.get('path')
+    content = data.get('code')
+    
+    if not file_path:
+        return jsonify({'error': 'No file path provided'}), 400
+        
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error saving file: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     print("Starting SocketIO server...")

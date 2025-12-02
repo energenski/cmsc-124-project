@@ -9,6 +9,7 @@ import "./index.css";
 interface File {
   name: string;
   code: string;
+  path?: string;
 }
 
 interface Token {
@@ -99,6 +100,11 @@ function App() {
   };
 
   const runCode = (mode: "lexer" | "syntax" | "semantics") => {
+    if (!activeFile.endsWith(".lol")) {
+      setOutput((prev) => prev + "> Error: Can only run .lol files.\n");
+      return;
+    }
+
     setIsRunning(true);
     setOutput(""); // Clear output
     setSymbolTable({}); // Clear symbol table
@@ -123,43 +129,61 @@ function App() {
     }
   };
 
-  //Handle file input click and read
-  const handleOpenFiles = () => {
-    fileInputRef.current?.click();
+  // Handle file input click and read
+  const handleOpenFiles = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/open_file");
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+
+      setFiles((prev) => {
+        const updated = [...prev];
+        const existing = updated.find((f) => f.path === data.path);
+        if (existing) {
+          existing.code = data.code;
+          existing.name = data.name;
+        } else {
+          updated.push({ name: data.name, code: data.code, path: data.path });
+        }
+        return updated;
+      });
+
+      setActiveFile(data.name);
+    } catch (e) {
+      console.error("Failed to open file", e);
+    }
   };
 
-  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = e.target.files;
-    if (!selectedFiles) return;
+  const saveFile = async () => {
+    const file = files.find((f) => f.name === activeFile);
+    if (!file) return;
 
-    const newFiles: File[] = [];
-
-    for (const file of Array.from(selectedFiles)) {
-      const content = await file.text();
-      newFiles.push({ name: file.name, code: content });
+    if (!file.path) {
+      alert("Cannot save file without a path. Please open a file first.");
+      return;
     }
 
-    // Avoid duplicates: if file already exists, overwrite its content
-    setFiles((prev) => {
-      const updated = [...prev];
-      for (const nf of newFiles) {
-        const existing = updated.find((f) => f.name === nf.name);
-        if (existing) {
-          existing.code = nf.code;
-        } else {
-          updated.push(nf);
-        }
+    try {
+      const response = await fetch("http://localhost:5000/save_file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ path: file.path, code: file.code }),
+      });
+
+      if (response.ok) {
+        setOutput((prev) => prev + `> Saved ${file.name}\n`);
+      } else {
+        const err = await response.json();
+        setOutput((prev) => prev + `> Error saving file: ${err.error}\n`);
       }
-      return updated;
-    });
-
-    // Set the last opened file as active
-    if (newFiles.length > 0) {
-      setActiveFile(newFiles[newFiles.length - 1].name);
+    } catch (e) {
+      console.error("Failed to save file", e);
+      setOutput((prev) => prev + `> Error saving file: ${e}\n`);
     }
-
-    // Reset input so reselecting the same file works again
-    e.target.value = "";
   };
 
   return (
@@ -175,6 +199,9 @@ function App() {
           </button>
           <button className="btn btn-secondary" onClick={handleOpenFiles}>
             <span>📂</span> Open
+          </button>
+          <button className="btn btn-secondary" onClick={saveFile}>
+            <span>💾</span> Save
           </button>
           <div style={{ display: "flex", gap: "8px" }}>
             <button
@@ -206,15 +233,6 @@ function App() {
             </button>
           </div>
         </div>
-
-        {/* Hidden file input */}
-        <input
-          type="file"
-          multiple
-          ref={fileInputRef}
-          style={{ display: "none" }}
-          onChange={handleFilesSelected}
-        />
       </header>
 
       {/* File Tabs */}
