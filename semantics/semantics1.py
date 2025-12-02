@@ -58,7 +58,28 @@ class Interpreter:
         if from_type == to_type:
             return value
         
-       
+        # 1. NOOB
+        if from_type == Types.NOOB:
+            if to_type == Types.TROOF:
+                return False
+            elif to_type == Types.YARN:
+                # For display, treat NOOB as "NOOB"
+                return "NOOB"
+            elif to_type == Types.NUMBR:
+                return 0  # Allow implicit cast to 0 for arithmetic
+            elif to_type == Types.NUMBAR:
+                return 0.0  # Allow implicit cast to 0.0 for arithmetic
+            elif not explicit:
+                # Implicit typecasting to other types still not allowed
+                raise Exception(f"Implicit typecasting of NOOB to {to_type} is not allowed.")
+            else:
+                # Explicit typecasting results to empty/zero values
+                if to_type == Types.NUMBR: return 0
+                if to_type == Types.NUMBAR: return 0.0
+                if to_type == Types.YARN: return ""
+                if to_type == Types.TROOF: return False
+                return value
+
         # 2. To YARN
         if to_type == Types.YARN:
             if from_type == Types.NUMBAR:
