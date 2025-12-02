@@ -232,18 +232,28 @@ class Parser:
         args = []
 
         # Expect at least one expression
-        args.append(self.parse_expression())
+        first_arg = self.parse_expression()
+        args.append(first_arg)
+        
+        # Track the line of the last argument to detect implicit newlines
+        last_arg_line = first_arg.get('line', line)
 
-        # Collect additional expressions separated by AN, PLUS, or just whitespace (implicit)
         while self.current().type in ("AN", "PLUS") or self.is_expression_start(self.current().type):
+            # Check for implicit concatenation across lines
+            if self.current().type not in ("AN", "PLUS"):
+                if self.current().line > last_arg_line:
+                    break
+
+            # Only eat AN if it is NOT inside SMOOSH
             if self.current().type in ("AN", "PLUS"):
-                self.eat(self.current().type)
+                # Peek previous node
+                if args[-1]['node_type'] != 'n_ary_op' or args[-1].get('op') != 'SMOOSH':
+                    self.eat(self.current().type)
+                else:
+                    break  # Stop eating ANs for SMOOSH
             
-            # Stop if we hit newline or EOF (though is_expression_start handles most checks)
-            if self.current().type in ("EOL", "EOF"):
-                break
-                
             args.append(self.parse_expression())
+            last_arg_line = args[-1].get('line', last_arg_line)
 
         return {"node_type": "visible", "args": args, "line": line}
 

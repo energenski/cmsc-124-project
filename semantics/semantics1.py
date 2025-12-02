@@ -548,11 +548,7 @@ class Interpreter:
             elif op == 'ANY_OF':
                 return any(operands), Types.TROOF
             elif op == 'SMOOSH':
-                operands = []
-                for x in node.get('operands'):
-                    val, t = self.evaluate(x)
-                    operands.append(val)
-                result = "".join(map(str, operands))
+                result = "".join(str(self.evaluate(x)[0]) for x in node.get('operands'))
                 return result, Types.YARN
         # evaluate expression tas typecast
         elif ntype == 'type_cast':
