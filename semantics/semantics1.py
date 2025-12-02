@@ -1,4 +1,5 @@
 import sys
+import json
 
 
 # data types
@@ -611,5 +612,15 @@ if __name__ == "__main__":
         interpreter = Interpreter()
         interpreter.execute(ast)
         
+        # Dump tokens
+        token_list = []
+        for t in tokens:
+            token_list.append({
+                'lexeme': t.value,
+                'classification': t.label,
+                'line': t.line
+            })
+        print(f"\n<<TOKENS>>{json.dumps(token_list)}")
+
         # Dump symbol table at the end
         print(f"\n<<SYMBOL_TABLE>>{interpreter.dump_symbol_table()}")

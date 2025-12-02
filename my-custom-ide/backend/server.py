@@ -29,16 +29,30 @@ def stream_output(process, sid):
         # Line by line is safer for buffering, but char by char is more "real-time".
         for line in iter(process.stdout.readline, ''):
             if line:
-                if "<<SYMBOL_TABLE>>" in line:
-                    parts = line.split("<<SYMBOL_TABLE>>")
-                    if parts[0]:
-                        socketio.emit('terminal_output', {'output': parts[0]}, room=sid)
-                    
-                    json_str = parts[1].strip()
-                    if json_str:
-                        socketio.emit('symbol_table', {'table': json_str}, room=sid)
-                else:
-                    socketio.emit('terminal_output', {'output': line}, room=sid)
+                    if "<<TOKENS>>" in line:
+                        parts = line.split("<<TOKENS>>")
+                        if parts[0]:
+                            socketio.emit('terminal_output', {'output': parts[0]}, room=sid)
+                        
+                        # Check if symbol table is also in the remaining part (unlikely on same line but possible if flushed together)
+                        # Actually, my semantics.py prints them on separate lines with \n, but let's be safe.
+                        # The semantics.py prints \n<<TOKENS>>... and \n<<SYMBOL_TABLE>>...
+                        # So they should come as separate lines usually.
+                        
+                        json_str = parts[1].strip()
+                        if json_str:
+                             socketio.emit('tokens', {'tokens': json_str}, room=sid)
+
+                    elif "<<SYMBOL_TABLE>>" in line:
+                        parts = line.split("<<SYMBOL_TABLE>>")
+                        if parts[0]:
+                            socketio.emit('terminal_output', {'output': parts[0]}, room=sid)
+                        
+                        json_str = parts[1].strip()
+                        if json_str:
+                            socketio.emit('symbol_table', {'table': json_str}, room=sid)
+                    else:
+                        socketio.emit('terminal_output', {'output': line}, room=sid)
             else:
                 break
     except Exception as e:

@@ -11,6 +11,12 @@ interface File {
   code: string;
 }
 
+interface Token {
+  lexeme: string;
+  classification: string;
+  line: number;
+}
+
 function App() {
   const [files, setFiles] = useState<File[]>([
     { name: "main.lol", code: "# Write your code here\n" },
@@ -20,7 +26,9 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(200);
   const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [lexemesWidth, setLexemesWidth] = useState(300);
   const [symbolTable, setSymbolTable] = useState<Record<string, any>>({});
+  const [tokens, setTokens] = useState<Token[]>([]);
 
   // Socket connection
   const [socket] = useState(() => io("http://localhost:5000"));
@@ -37,6 +45,15 @@ function App() {
 
     socket.on("terminal_output", (data) => {
       setOutput((prev) => prev + data.output);
+    });
+
+    socket.on("tokens", (data) => {
+      try {
+        const tokenList = JSON.parse(data.tokens);
+        setTokens(tokenList);
+      } catch (e) {
+        console.error("Failed to parse tokens", e);
+      }
     });
 
     socket.on("symbol_table", (data) => {
@@ -56,6 +73,7 @@ function App() {
     return () => {
       socket.off("connect");
       socket.off("terminal_output");
+      socket.off("tokens");
       socket.off("symbol_table");
       socket.off("process_finished");
     };
@@ -84,6 +102,7 @@ function App() {
     setIsRunning(true);
     setOutput(""); // Clear output
     setSymbolTable({}); // Clear symbol table
+    setTokens([]); // Clear tokens
     socket.emit("run_code", { code: activeCode, mode });
   };
 
@@ -248,6 +267,41 @@ function App() {
               }}
             />
           </div>
+
+          {/* Lexemes Table */}
+          <ResizableSidebar width={lexemesWidth} setWidth={setLexemesWidth}>
+            <div className="symbol-table-container">
+              <div className="symbol-table-header">Lexemes</div>
+              <div className="symbol-table-content">
+                <table className="st-table">
+                  <thead>
+                    <tr>
+                      <th>Lexeme</th>
+                      <th>Classification</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tokens.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                          No tokens
+                        </td>
+                      </tr>
+                    ) : (
+                      tokens.map((token, index) => (
+                        <tr key={index}>
+                          <td>{token.lexeme}</td>
+                          <td>{token.classification}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </ResizableSidebar>
+
+          {/* Symbol Table */}
           <ResizableSidebar width={sidebarWidth} setWidth={setSidebarWidth}>
             <div className="symbol-table-container">
               <div className="symbol-table-header">Symbol Table</div>
