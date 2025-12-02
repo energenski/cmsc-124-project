@@ -100,7 +100,7 @@ class Parser:
         elif tok == "ORLY":
             self.if_statement()
         elif tok == "WTF":
-            self.switch_statement
+            self.switch_statement()
         elif tok == "IM_IN_YR":
             self.loop_statement()
         elif tok == "HOW":
@@ -206,55 +206,27 @@ class Parser:
         }
 
     #parses switch-case structure
+    #still cant get the identifier after WTF, causes error
+    #still works if no identifier after WTF, only executes OMGWTF
     def switch_statement(self):
-        self.eat("WTF")  # Consume WTF?
-
-        # Step 1: Parse the switch expression (e.g., X)
-        if self.current().type in ("OMG", "OMGWTF", "EOF"):
-            self.record_error("Expected expression after WTF?", self.current())
-            switch_expr = None
-        else:
-            # Parse the expression that will be compared to OMG cases
-            switch_expr = self.parse_expression()
-
-        cases = []
-        default_case = []
-
-        # Step 2: Parse OMG / OMGWTF blocks
-        while self.current().type not in ("OIC", "EOF"):
-            if self.current().type == "OMG":
-                self.eat("OMG")
-                # Each OMG must have a literal/expression for comparison
-                if self.current().type not in ("IDENTIFIER", "INTEGER_LITERAL", "FLOAT_LITERAL", "STRING", "TROOF_LITERAL"):
-                    self.record_error("Expected literal after OMG", self.current())
-                    case_expr = None
-                else:
-                    case_expr = self.parse_expression()
-                body = []
-                while self.current().type not in ("OMG", "OMGWTF", "OIC", "EOF"):
-                    body.append(self.statement())
-                cases.append({'value': case_expr, 'body': body})
-            elif self.current().type == "OMGWTF":
-                self.eat("OMGWTF")
-                while self.current().type not in ("OIC", "EOF"):
-                    default_case.append(self.statement())
-            else:
-                self.record_error(f"Unexpected token in switch: {self.current().type}", self.current())
-                self.position += 1
-
-        # Step 3: Ensure OIC ends the switch
+        self.eat("WTF")  # consume WTF?
+        if self.current().type == "IDENTIFIER":
+            self.eat("IDENTIFIER")
+        # Skip OMG (case) blocks
+        while self.current().type == "OMG":
+            self.eat("OMG")
+            while self.current().type not in ("OMG", "OMGWTF", "OIC", "EOF"):
+                self.statement()
+        # Optional default block
+        if self.current().type == "OMGWTF":
+            self.eat("OMGWTF")
+            while self.current().type not in ("OIC", "EOF"):
+                self.statement()
+        # End of switch
         if self.current().type != "OIC":
             self.record_error("Missing OIC at end of switch", self.current())
         else:
             self.eat("OIC")
-
-        # Return AST node
-        return {
-            'node_type': 'switch_stmt',
-            'switch_expr': switch_expr,  # store the identifier/value to compare
-            'cases': cases,
-            'default': default_case
-        }
 
 
     #parses loop syntax
