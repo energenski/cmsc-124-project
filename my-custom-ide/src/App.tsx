@@ -32,7 +32,7 @@ function App() {
   const [tokens, setTokens] = useState<Token[]>([]);
 
   // Socket connection
-  const [socket] = useState(() => io("http://localhost:5000"));
+  const [socket] = useState(() => io(`http://${window.location.hostname}:5000`));
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
@@ -132,7 +132,7 @@ function App() {
   // Handle file input click and read
   const handleOpenFiles = async () => {
     try {
-      const response = await fetch("http://localhost:5000/open_file");
+      const response = await fetch(`http://${window.location.hostname}:5000/open_file`);
       if (!response.ok) {
         return;
       }
@@ -166,7 +166,7 @@ function App() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/save_file", {
+      const response = await fetch(`http://${window.location.hostname}:5000/save_file`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
