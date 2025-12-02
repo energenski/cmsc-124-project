@@ -176,6 +176,12 @@ class Interpreter:
             else:   
                 self.set_variable(target, val, t)
 
+        # handle expr na nag-uupdate sa IT
+        elif ntype == 'expression_stmt':
+            # Bare expression that updates IT
+            val, t = self.evaluate(node.get('expr'))
+            self.it_register = {'value': val, 'type': t}
+
         # Evaluates arguments, casts them to strings, and adds them sa output_buffer
         elif ntype == 'visible':
             out_parts = []
@@ -234,16 +240,36 @@ class Interpreter:
         # check yung value ng IT reg and compare sa literal values ng bawta case
         elif ntype == 'switch_stmt':
             it_val = self.it_register['value']
+            it_type = self.it_register['type']
             matched = False
+            
             for case in node.get('cases', []):
-                case_val = case['value'] # Literal value
-                # Simple equality check
-                if it_val == case_val:
+                case_val = case['value']  # Literal value from OMG
+                
+                # Compare values with type coercion
+                # If IT is YARN (from GIMMEH) and case is a number, try converting IT to number
+                if it_type == Types.YARN and isinstance(case_val, (int, float)):
+                    try:
+                        # Try to convert YARN to the appropriate numeric type
+                        if isinstance(case_val, int):
+                            it_val_converted = int(it_val)
+                        else:
+                            it_val_converted = float(it_val)
+                            
+                        if it_val_converted == case_val:
+                            matched = True
+                    except (ValueError, TypeError):
+                        # Can't convert, no match
+                        pass
+                elif it_val == case_val:
+                    # Direct comparison
                     matched = True
+                    
+                if matched:
                     for stmt in case['body']:
                         self.execute_node(stmt)
                         if self.should_return: return
-                    break 
+                    break
             
             if not matched:
                 for stmt in node.get('default', []):
