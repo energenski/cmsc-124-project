@@ -247,7 +247,22 @@ class Token:
         self.value = value
         self.line = line
         self.column = column
-        self.label = TOKEN_LABELS.get(type, "Unknown")
+        
+        if type == "IDENTIFIER":
+            self.label = "Variable Identifier"
+        elif type == "INTEGER_LITERAL":
+            self.label = "Integer Literal"
+        elif type == "FLOAT_LITERAL":
+            self.label = "Float Literal"
+        elif type == "STRING":
+            self.label = "String Literal"
+        elif type == "TROOF_LITERAL":
+            if value in ("WIN", "true"):
+                self.label = "Boolean Value (True)"
+            else:
+                self.label = "Boolean Value (False)"
+        else:
+            self.label = TOKEN_LABELS.get(type, "Unknown")
 
     def __repr__(self):
         return f"Token({self.type}, {self.value}, {self.line}, {self.column})"
