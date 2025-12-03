@@ -1,7 +1,6 @@
 import sys
 import json
 
-
 # data types
 class Types:
     NOOB = 'NOOB'       # uninitialized

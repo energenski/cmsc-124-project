@@ -587,5 +587,4 @@ if __name__ == "__main__":
         sys.exit(1)
     else:
         # print("No errors found.")
-        # print(ast) # Debug: print AST
         pass
