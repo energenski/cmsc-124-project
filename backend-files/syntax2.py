@@ -1,6 +1,9 @@
 import sys
 import os
 
+# Add parent directory to path to import lexer1
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Importing
 try:
     from lexer1 import get_tokens, Token
@@ -134,7 +137,9 @@ class Parser:
             elif self.peek().type == "IS_NOW_A":
                 return self.type_cast()
             else:
-                return self.parse_expression() # Expression as statement (e.g. IT = expr)
+                # Bare identifier should assign to IT
+                expr = self.parse_expression()
+                return {"node_type": "assignment", "target": "IT", "expr": expr, "line": expr.get('line')} # Expression as statement (e.g. IT = expr)
         elif tok == "VISIBLE":
             return self.output_statement()
         elif tok == "GIMMEH":
