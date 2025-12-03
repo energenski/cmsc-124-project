@@ -216,8 +216,6 @@ class Interpreter:
             if not branch_executed:
                 for elif_block in node.get('else_if_blocks', []):
                     # Evaluate MEBBE condition
-                    # Note: In LOLCODE, expressions in flow control usually update IT.
-                    # We evaluate, update IT, then check TROOFness.
                     val, t = self.evaluate(elif_block['condition'])
                     self.it_register = {'value': val, 'type': t}
                     
@@ -247,7 +245,7 @@ class Interpreter:
                 case_val = case['value']  # Literal value from OMG
                 
                 # Compare values with type coercion
-                # If IT is YARN (from GIMMEH) and case is a number, try converting IT to number
+                # If IT is YARN and case is a number, try converting IT to number
                 if it_type == Types.YARN and isinstance(case_val, (int, float)):
                     try:
                         # Try to convert YARN to the appropriate numeric type
@@ -285,7 +283,7 @@ class Interpreter:
                 # Store as YARN (string)
                 self.set_variable(var_name, user_input, Types.YARN)
             except EOFError:
-                # Handle end of input gracefully if needed
+                # Handle end of input
                 self.set_variable(var_name, "", Types.YARN)
 
         # check yung TIL or WILE cond para mag break
@@ -314,13 +312,10 @@ class Interpreter:
                     var_info = self.get_variable(var_name)
                     val = var_info['value']
                     # Typecast to NUMBR/NUMBAR for UPPIN/NERFIN
-                    # Assume casting to NUMBAR for safety if needed, or NUMBR if it's the current type
-                    # For simplicity, cast to the current numerical type or NUMBR if NOOB/TROOF
                     current_type = var_info['type']
                     
                     if current_type not in [Types.NUMBR, Types.NUMBAR]:
                         # Attempt to implicitly cast to NUMBR/NUMBAR
-                        # Since this is an operation, the casting rules from arithmetic should apply
                         try:
                             val = self.cast_value(val, current_type, Types.NUMBR)
                             current_type = Types.NUMBR
@@ -421,7 +416,7 @@ class Interpreter:
             left_num = self.cast_value(left_val, left_type, target_type)
             right_num = self.cast_value(right_val, right_type, target_type)
         except Exception as e:
-            # If a value cannot be typecast, the operation must fail with an error [cite: 161]
+            # If a value cannot be typecast, the operation must fail with an error
             raise Exception(f"Arithmetic Error in {operation_name}: {str(e)}")
             
         # If target was NUMBR, but we got floats from casting YARN/NUMBAR, convert them to int for NUMBR result
@@ -467,7 +462,7 @@ class Interpreter:
             right_val, right_type = self.evaluate(node.get('right'))
             op = node.get('op')
 
-            # --- Arithmetic Operations (Require implicit casting) ---
+            # Arithmetic Operations
             if op in ['SUM_OF', 'DIFF_OF', 'PRODUKT_OF', 'QUOSHUNT_OF', 'MOD_OF', 'BIGGR_OF', 'SMALLR_OF']:
                 
                 left_num, right_num, result_type = self.get_numeric_operands(node.get('left'), node.get('right'), op)
@@ -504,7 +499,7 @@ class Interpreter:
 
                 return result, result_type
 
-            # --- Boolean Operations (Require implicit TROOF casting) ---
+            # Boolean Operations
             
             # Implicitly cast operands to TROOF
             left_troof = self.cast_value(left_val, left_type, Types.TROOF)
@@ -517,10 +512,8 @@ class Interpreter:
             elif op == 'WON_OF':
                 return (left_troof != right_troof), Types.TROOF
             
-            # --- Comparison Operations (NO implicit casting) ---
-            # Comparisons are done using the raw values/types.
+            # Comparison Operations
             elif op == 'BOTH_SAEM':
-                # Relaxed comparison: allow implicit casting
                 if left_type == right_type:
                     return (left_val == right_val), Types.TROOF
                 
@@ -541,9 +534,7 @@ class Interpreter:
 
             elif op == 'DIFFRINT':
                 # DIFFRINT is NOT BOTH_SAEM
-                # We can reuse the logic by inverting the result of BOTH_SAEM logic
-                # But for clarity/performance, we can just copy-paste and invert or call a helper.
-                # Let's just duplicate logic but inverted.
+                # Reuse the logic by inverting the result of BOTH_SAEM logic
                 
                 if left_type == right_type:
                     return (left_val != right_val), Types.TROOF
