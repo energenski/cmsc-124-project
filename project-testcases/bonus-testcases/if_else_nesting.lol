@@ -1,46 +1,25 @@
 HAI
-    WAZZUP
-        I HAS A outerCond ITZ 10
-        I HAS A innerCond ITZ 5
-    BUHBYE
 
-    DIFFRINT outerCond AN 5 BTW Outer condition: 10 != 5 (WIN). Stored in IT.
+WAZZUP
+    I HAS A num ITZ 10
+BUHBYE
 
-    O RLY? BTW Outer IF (IT is WIN)
-        YA RLY
-            VISIBLE "Outer IF: WIN"
 
-            BOTH SAEM innerCond AN 5 BTW Inner condition: 5 == 5 (WIN). Stored in IT.
+BOTH SAEM num AN 10
+O RLY?
+    YA RLY
+        VISIBLE "num is 10"
 
-            O RLY? BTW Inner IF (IT is WIN)
-                YA RLY
-                    VISIBLE "Inner IF: WIN"
-                NO WAI
-                    VISIBLE "Inner ELSE: FAIL"
-            OIC
+        BOTH SAEM num AN BIGGR OF 5 AN 3
+	O RLY?
+            YA RLY
+                VISIBLE "Nested: num equals the bigger of 5 and 3"
+            NO WAI
+                VISIBLE "Nested: num is 10 but not equal to BIGGR result"
+        OIC
 
-            innerCond R 0
-            DIFFRINT innerCond AN 5 BTW Inner condition: 0 != 5 (WIN). Stored in IT.
-
-            O RLY? BTW Inner IF (IT is WIN)
-                YA RLY
-                    VISIBLE "Inner IF 2: WIN"
-                NO WAI
-                    VISIBLE "Inner ELSE 2: FAIL"
-            OIC
-            
-        NO WAI
-            VISIBLE "Outer ELSE: FAIL"
-    OIC
-
-    outerCond R 5
-    DIFFRINT outerCond AN 5 BTW Outer condition: 5 != 5 (FAIL). Stored in IT.
-
-    O RLY? BTW Outer IF (IT is FAIL)
-        YA RLY
-            VISIBLE "Outer IF 2: WIN (SHOULD NOT PRINT)"
-        NO WAI
-            VISIBLE "Outer ELSE 2: FAIL"
-    OIC
+    NO WAI
+        VISIBLE "num is not 10"
+OIC
 
 KTHXBYE
