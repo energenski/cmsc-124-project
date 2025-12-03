@@ -1,9 +1,6 @@
 import sys
 import os
 
-# Add parent directory to path to import lexer1
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 # Importing
 try:
     from lexer1 import get_tokens, Token

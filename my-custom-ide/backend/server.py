@@ -20,9 +20,9 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 active_processes = {}
 
 # Paths
-LEXER_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../lexer1.py"))
-SYNTAX_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../syntax/syntax2.py"))
-SEMANTICS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../semantics/semantics1.py"))
+LEXER_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend-files/lexer1.py"))
+SYNTAX_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend-files/syntax2.py"))
+SEMANTICS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend-files/semantics1.py"))
 
 def stream_output(process, sid):
     """Reads stdout from the process and emits it to the client."""

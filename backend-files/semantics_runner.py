@@ -1,11 +1,8 @@
 import sys
 import os
 
-# Add parent directory to path to import modules
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from semantics.semantics1 import SemanticAnalyzer, Types
-from syntax.syntax2 import Parser
+from semantics1 import SemanticAnalyzer, Types
+from syntax2 import Parser
 from lexer1 import get_tokens
 
 # --- Monkey-patching infer_expr_type ---
