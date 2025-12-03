@@ -13,27 +13,30 @@ HAI
 	VISIBLE "Choice: "
 	GIMMEH choice
 
-	choice
+	choice			BTW idk if this should be error (commented out) or included [i believe error dapat since WTF? should use value in IT]
 	WTF?
 		OMG 1
 			VISIBLE "Enter birth year: "
 			GIMMEH input
-			VISIBLE DIFF OF 2022 AN input
+			VISIBLE DIFF OF 2025 AN input
 			GTFO
 		OMG 2
 			VISIBLE "Enter bill cost: "
 			GIMMEH input
-			VISIBLE "Tip: " PRODUCKT OF input AN 0.1
+			BTW originally <VISIBLE "Tip: " + PRODUCKT OF input AN 0.1>  i just corrected PRODUCKT to run code and added '+'
+			VISIBLE "Tip: " + PRODUKT OF input AN 0.1		
 			GTFO
 		OMG 3
 			VISIBLE "Enter width: "
 			GIMMEH input
-			VISIBLE "Square Area: " PRODUKT OF input AN input
+			BTW originally <VISIBLE "Square Area: " PRODUKT OF input AN input>, i just added '+' to run code
+			VISIBLE "Square Area: " + PRODUKT OF input AN input
 			GTFO
 		OMG 0
 			VISIBLE "Goodbye"
+			GTFO				BTW added GTFO since there wasn't -> SYNTAX ERROR missing GTFO on OMG block
 		OMGWTF
-			VISIBLE "Invalid Input!"
+			VISIBLE "Invalid Input!"	BTW OMGWTF does not need GTFO
 	OIC
 
 KTHXBYE

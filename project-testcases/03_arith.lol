@@ -5,7 +5,9 @@ HAI
         I HAS A y
     BUHBYE
     
+    VISIBLE "Please enter x:"
     GIMMEH x
+    VISIBLE "Please enter y:"
     GIMMEH y
 
     VISIBLE x + "+" + y + " = " + SUM OF x AN y
