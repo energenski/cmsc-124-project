@@ -11,9 +11,12 @@ A fully functional Integrated Development Environment (IDE) for the **LOLCODE** 
 *   **Semantic Execution**: Run your LOLCODE programs with support for:
     *   Variable declaration and assignment (`I HAS A`, `ITZ`).
     *   Arithmetic and boolean operations.
-    *   Control flow (`O RLY?`, `YA RLY`, `NO WAI`, `WTF?`).
+    *   Control flow (`O RLY?`, `YA RLY`, `MEBBE`, `NO WAI`, `WTF?`).
     *   Loops (`IM IN YR LOOP`).
     *   Input/Output (`VISIBLE`, `GIMMEH`).
+    *   String concatenation (`SMOOSH`).
+    *   Loops
+    *   Functions
 *   **Interactive Terminal**: A real-time terminal emulator that supports standard output and interactive input via WebSockets.
 *   **Responsive Design**: A modern, dark-themed UI built with TailwindCSS.
 

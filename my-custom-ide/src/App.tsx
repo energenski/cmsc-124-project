@@ -204,24 +204,7 @@ function App() {
             <span>💾</span> Save
           </button>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              className="btn btn-primary"
-              onClick={() => runCode("lexer")}
-              disabled={isRunning}
-              title="Run Lexical Analysis"
-            >
-              <span>{isRunning ? "⏳" : "▶️"}</span>
-              Lexer
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => runCode("syntax")}
-              disabled={isRunning}
-              title="Run Syntax Analysis"
-            >
-              <span>{isRunning ? "⏳" : "▶️"}</span>
-              Syntax
-            </button>
+
             <button
               className="btn btn-primary"
               onClick={() => runCode("semantics")}
@@ -229,7 +212,7 @@ function App() {
               title="Run semantics Check"
             >
               <span>{isRunning ? "⏳" : "▶️"}</span>
-              Semantics
+              Run
             </button>
           </div>
         </div>

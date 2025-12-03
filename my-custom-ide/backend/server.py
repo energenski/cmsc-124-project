@@ -25,21 +25,15 @@ SYNTAX_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../bac
 SEMANTICS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend-files/semantics1.py"))
 
 def stream_output(process, sid):
-    """Reads stdout from the process and emits it to the client."""
+    #Reads stdout from the process and emits it to the client.
     try:
         # Read character by character or line by line. 
-        # Line by line is safer for buffering, but char by char is more "real-time".
         for line in iter(process.stdout.readline, ''):
             if line:
                     if "<<TOKENS>>" in line:
                         parts = line.split("<<TOKENS>>")
                         if parts[0]:
                             socketio.emit('terminal_output', {'output': parts[0]}, room=sid)
-                        
-                        # Check if symbol table is also in the remaining part (unlikely on same line but possible if flushed together)
-                        # Actually, my semantics.py prints them on separate lines with \n, but let's be safe.
-                        # The semantics.py prints \n<<TOKENS>>... and \n<<SYMBOL_TABLE>>...
-                        # So they should come as separate lines usually.
                         
                         json_str = parts[1].strip()
                         if json_str:
@@ -66,7 +60,7 @@ def stream_output(process, sid):
             del active_processes[sid]
 
 def stream_error(process, sid):
-    """Reads stderr from the process and emits it to the client."""
+    # Reads stderr from the process and emits it to the client.
     try:
         for line in iter(process.stderr.readline, ''):
             if line:
@@ -111,12 +105,6 @@ def handle_run_code(data):
     elif mode == 'semantics':
         script_path = SEMANTICS_PATH
 
-    # Create temp file
-    # Note: We need to keep the file until the process is done. 
-    # For simplicity, we'll create it and let the OS/User clean up or just leave it for now.
-    # Or better, use a try/finally block in a separate thread? 
-    # Actually, subprocess needs the file path.
-    
     fd, temp_path = tempfile.mkstemp(suffix='.lol', text=True)
     with os.fdopen(fd, 'w', encoding='utf-8') as f:
         f.write(code)
@@ -125,8 +113,6 @@ def handle_run_code(data):
 
     try:
         # Start subprocess
-        # bufsize=0 for unbuffered I/O (binary mode), but we want text.
-        # text=True makes it buffered by line usually.
         process = subprocess.Popen(
             ['python', '-u', script_path, temp_path], # -u for unbuffered python output
             stdin=subprocess.PIPE,
@@ -173,7 +159,6 @@ def open_file_endpoint():
         dialog_script = os.path.join(os.path.dirname(__file__), 'file_dialog.py')
         
         # Use subprocess to run the script and capture output
-        # python executable might be 'python' or 'python3' depending on system, but 'python' is standard on Windows
         process = subprocess.Popen(
             ['python', dialog_script],
             stdout=subprocess.PIPE,
