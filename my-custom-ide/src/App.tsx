@@ -191,7 +191,7 @@ function App() {
       {/* Header */}
       <header className="header">
         <div className="header-title">
-          <span>🐈</span> LOLCODE IDE
+          <span>🐈</span> LOLCODE Interpreter
         </div>
         <div className="header-actions">
           <button className="btn btn-secondary" onClick={addFile}>

@@ -1,5 +1,5 @@
 {
-  "name": "my-custom-ide",
+  "name": "lolcode-interpreter",
   "private": true,
   "version": "0.0.0",
   "type": "module",
